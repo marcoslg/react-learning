@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Prompt } from "react-router-dom";
 import CourseForm from "./CourseForm";
-import * as courseAPI from "../api/courseApi";
+//import * as courseAPI from "../api/courseApi";
+import courseStore from "../stores/courseStore";
+import * as courseActions from "../actions/courseActions";
+import { loadAuthors } from "../actions/authorsActions";
+import authorsStore from "../stores/authorsStore";
+
 import { toast } from "react-toastify";
 
 const ManageCoursePage = (props) => {
@@ -12,16 +17,48 @@ const ManageCoursePage = (props) => {
     authorId: null,
     category: "",
   });
+  const [hasUnsaved, sethasUnsaved] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(courseStore.isEmpty());
+  const [errors, setErrors] = useState({});
+  const [authors, setAuthors] = useState(authorsStore.get());
 
   useEffect(() => {
-    const slug = props.match.params.slug;
-    if (slug) {
-      courseAPI.getCourseBySlug(slug).then((_course) => setCourse(_course));
+    courseStore.addChangeListener(onChange);
+
+    if (isEmpty) {
+      courseActions.loadCourses();
+    } else {
+      onChange();
     }
+    return () => courseStore.removeChangeListener(onChange);
   }, [props.match.params.slug]);
 
-  const [hasUnsaved, sethasUnsaved] = useState(false);
-  const [errors, setErrors] = useState({});
+  useEffect(() => {
+    authorsStore.addChangeListener(onLoadAuthors);
+
+    if (isEmpty) {
+      loadAuthors();
+    }
+    return () => authorsStore.removeChangeListener(onLoadAuthors);
+  }, [authors]);
+
+  function onChange() {
+    setIsEmpty(courseStore.isEmpty());
+    const slug = props.match.params.slug;
+    if (slug) {
+      var _course = courseStore.getCoursesBySlug(slug);
+      if (_course) {
+        setCourse(_course);
+      } else {
+        props.history.push("/notfound");
+      }
+    }
+  }
+
+  function onLoadAuthors() {
+    const _authors = authorsStore.get();
+    setAuthors(_authors);
+  }
 
   function handleTitle(event) {
     const updatedCource = { ...course, title: event.target.value };
@@ -49,7 +86,7 @@ const ManageCoursePage = (props) => {
   function handleSubmit(event) {
     event.preventDefault();
     if (!formIsValid()) return;
-    courseAPI
+    courseActions
       .saveCourse(course)
       .then(() => {
         sethasUnsaved(false);
@@ -71,6 +108,7 @@ const ManageCoursePage = (props) => {
         onChange={handleChange}
         onSubmit={handleSubmit}
         errors={errors}
+        authors={authors}
       />
     </>
   );

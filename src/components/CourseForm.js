@@ -6,6 +6,14 @@ import PropTypes from "prop-types";
 function CourseForm(props) {
   return (
     <form onSubmit={props.onSubmit}>
+      <input type="hidden" id="id" name="id" value={props.course.id || ""} />
+      <input
+        type="hidden"
+        id="slug"
+        name="slug"
+        value={props.course.slug || ""}
+      />
+
       <TextInput
         id="title"
         label="Title"
@@ -24,8 +32,9 @@ function CourseForm(props) {
         value={props.course.authorId || ""}
         options={[
           { value: "", label: "" },
-          { value: "1", label: "Cory House" },
-          { value: "2", label: "Scott Allen" },
+          ...props.authors.map((a) => {
+            return { value: a.id, label: a.name };
+          }),
         ]}
       />
 
@@ -56,6 +65,7 @@ CourseForm.propTypes = {
   }).isRequired,
   onChange: PropTypes.func.isRequired,
   onSubmit: PropTypes.func.isRequired,
+  authors: PropTypes.array.isRequired,
 };
 // CourseForm.propTypes = {
 //   course: PropTypes.shape({
